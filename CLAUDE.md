@@ -2,7 +2,11 @@
 
 Ask-my-docs system over CFA Level I study notes: retrieve the right passages and answer with
 citations (book, reading, page), and decline when the retrieved text does not support an answer.
-Personal project. Status on 2026-11-12: scaffold only, no pipeline code yet.
+Public portfolio project. Status on 2026-11-12: scaffold only, no pipeline code yet.
+
+A full design is awaiting the owner's approval in `docs/design.md`, with the reasoning in
+`docs/tech-decisions.md`. Where they differ from the Roadmap, Stack and Architecture sections
+below, they win once approved, and this file is then updated to match.
 
 Talk to the user in Vietnamese. Code, comments, commit messages and docs are in English.
 
@@ -17,7 +21,8 @@ QuickSheet (6 pages). Checked on the files themselves:
 - Page numbers must survive parsing, because citations depend on them.
 
 The notes are copyrighted. `data/` is gitignored: never commit source PDFs, parsed text, chunks or
-an index. Keep the repository private for as long as `evals/golden/` quotes the notes.
+an index. The repository is public, so nothing committed may quote the notes, including the
+golden set and eval reports.
 
 ## Roadmap
 
@@ -92,3 +97,5 @@ uv run mypy              # type check
 ## Git
 
 Conventional Commits, no attribution trailers. Do not push or open a PR unless asked.
+Everything goes to the GitHub account `mingjun6886`; this repository's local git identity is set
+to it. SSH on this machine authenticates as another account, so use an HTTPS remote.
