@@ -23,6 +23,8 @@ indicative. Items marked **verified here** were checked on the owner's machine.
 | Evaluation | DeepEval + own metrics | Owner | A local judge model is unreliable |
 | Conversations | LangGraph SQLite checkpointer | Design default | One machine only |
 | Injection defence | Structure and code checks, measured | Design default | No model-based input classifier |
+| Implementations | Python first, then the serving path again in Rust | Owner | Two services to keep in step |
+| Service API | FastAPI, with an OpenAPI contract | Design default | One more process and dependency |
 
 ## 1. Document parser — open
 
@@ -143,8 +145,8 @@ LangGraph graph, not a chain of opaque helpers.
 | Gradio (6.31.0, 2026-10-28) | Quick chat component | Two-column source view takes more custom work |
 | React + FastAPI | Full control; inline citations; shows API design | A second toolchain and much more code |
 
-**Verdict.** Streamlit. The UI calls one function of the core, so a React frontend can replace it
-later without touching retrieval.
+**Verdict.** Streamlit. The UI is a client of the HTTP API, so a React frontend can replace it
+later without touching the service.
 
 ## 10. Tracing
 
@@ -207,6 +209,40 @@ attack success rate. A classifier is added only if that number shows it is neede
 
 **Verdict.** The middle option now, the third once the Claude API is added. CI uses a small openly
 licensed sample corpus so that it, and any visitor, can run the pipeline.
+
+## 15. Implementation language
+
+| Option | Gives | Costs |
+|---|---|---|
+| Python only | Fastest; the whole stack is what AI job postings ask for | No Rust |
+| Rust only | Distinctive; deep Rust practice | Gives up LangChain, LangGraph, DeepEval, Streamlit and Docling, with no Rust equivalent of the last two; learning Rust and RAG together puts "presentable at any time" at risk |
+| **Python first, then the serving path again in Rust** | A finished Python system early; a Rust project where Rust is strong (a service answering queries); a reference and an eval harness to check the Rust code against; a side-by-side comparison to show | An HTTP boundary from milestone 1; two services to keep in step; Qdrant must run as a server for Rust |
+
+Rust crates checked on crates.io on 2026-11-12:
+
+| Need | Crate | Version, last update | Note |
+|---|---|---|---|
+| LLM framework | `rig-core` | 0.46.0, 2026-10-31 | Widely used; pre-1.0, so its API still moves |
+| RAG pipelines | `swiftide` | 0.34.0, 2026-11-06 | Small user base |
+| LangChain port | `langchain-rust` | 8.0.0, 2026-11-03 | Community port; small user base; no LangGraph |
+| Vector store | `qdrant-client` | 1.20.0, 2026-10-22 | Official; needs a Qdrant server (no in-process mode) |
+| Embeddings, rerank | `fastembed` | 7.7.0, 2026-11-09 | Support for `bge-m3` and `bge-reranker-v2-m3` not yet verified |
+| HTTP server | `axum` | 0.8.9, 2026-04-14 | The usual choice |
+| Tracing | `opentelemetry-otlp` | 0.33.1, 2026-10-09 | Langfuse has no official Rust SDK; this route is unverified |
+| PDF | `pdfium-render` | 0.9.5, 2026-11-01 | Text and rendering only; nothing like Docling |
+
+**Verdict.** The third option, by owner decision. Ingestion, evaluation and the UI stay in Python,
+where the tools are. Crate choices are made in the Rust milestone's own design.
+
+## 16. Service API (Python)
+
+| Option | Gives | Costs |
+|---|---|---|
+| Streamlit calls the core function directly | Least code | No boundary for a second implementation or for the eval harness |
+| **FastAPI** (0.162.5, 2026-11-11), contract-first | The usual choice; OpenAPI and server-sent events are well supported | One more process and dependency |
+| A LangChain-provided server | Made for LangGraph apps | Its API shape is LangChain's own, which a Rust service would have to imitate |
+
+**Verdict.** FastAPI. The OpenAPI file is the contract; contract tests run against any base URL.
 
 ## Sources
 
