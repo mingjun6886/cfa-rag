@@ -5,10 +5,33 @@ description = "Ask-my-docs RAG over CFA study notes, with citations"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "langchain-core>=1.8.0",
+    "pdfplumber>=0.11.10",
+    "pypdfium2>=5.15.2",
+    "pyyaml>=6.0.3",
+]
+
+[project.optional-dependencies]
+ollama = [
+    "langchain-ollama>=1.1.0",
+]
+docling = [
+    "docling>=2.150.0",
+]
+mistral = [
+    "mistralai>=3.7.0",
+]
 
 [dependency-groups]
-dev = ["mypy", "pytest", "ruff"]
+dev = [
+    "fpdf2>=2.9.0",
+    "mypy",
+    "pillow>=13.0.0",
+    "pytest",
+    "ruff",
+    "types-pyyaml>=6.0.12.20261111",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -29,3 +52,8 @@ files = ["src", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: downloads models or runs a heavy parser; deselect with -m \"not slow\""]
+
+[[tool.mypy.overrides]]
+module = ["pypdfium2", "pypdfium2.*"]
+ignore_missing_imports = true  # the package ships no type information

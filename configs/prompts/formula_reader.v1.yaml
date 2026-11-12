@@ -1,0 +1,2 @@
+# Prompt for the model that reads formula images. Never edit a released version; add v2 instead.
+prompt: "Transcribe the formula in this image to LaTeX. Output only the LaTeX, with no delimiters and no commentary. If the image is not a mathematical formula, output exactly NOT_A_FORMULA."
