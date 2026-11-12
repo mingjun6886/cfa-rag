@@ -164,6 +164,7 @@ source = { editable = "." }
 dependencies = [
     { name = "langchain-core" },
     { name = "pdfplumber" },
+    { name = "pydantic" },
     { name = "pypdfium2" },
     { name = "pyyaml" },
 ]
@@ -196,6 +197,7 @@ requires-dist = [
     { name = "langchain-ollama", marker = "extra == 'ollama'", specifier = ">=1.1.0" },
     { name = "mistralai", marker = "extra == 'mistral'", specifier = ">=3.7.0" },
     { name = "pdfplumber", specifier = ">=0.11.10" },
+    { name = "pydantic", specifier = ">=2.14.3" },
     { name = "pypdfium2", specifier = ">=5.15.2" },
     { name = "pyyaml", specifier = ">=6.0.3" },
 ]
