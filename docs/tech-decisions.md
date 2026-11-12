@@ -19,7 +19,7 @@ indicative. Items marked **verified here** were checked on the owner's machine.
 | Answering model | Ollama now, Claude API later | Owner | Weaker citation discipline and injection resistance |
 | Orchestration | LangChain + LangGraph | Owner | API churn; more abstraction than a linear flow needs |
 | UI | Streamlit | Design default | Less custom look; citations are buttons, not inline links |
-| Tracing | Langfuse (cloud free tier) | Owner; hosting is a default | Traces leave the machine |
+| Tracing | Langfuse (cloud free tier) | Owner | Traces leave the machine |
 | Evaluation | DeepEval + own metrics | Owner | A local judge model is unreliable |
 | Conversations | LangGraph SQLite checkpointer | Design default | One machine only |
 | Injection defence | Structure and code checks, measured | Design default | No model-based input classifier |
@@ -159,7 +159,7 @@ later without touching retrieval.
 | **Langfuse Cloud, free tier** (50k units a month, 30 days of data, per its pricing page) | Nothing to run locally | Traces, which contain passages from the notes, are stored by a vendor in a private project |
 | Self-hosted with Docker | Everything stays on the machine | Several containers competing for memory with the local model |
 
-**Verdict.** Langfuse, by owner decision. Cloud free tier as the default, with the host set by an
+**Verdict.** Langfuse on the cloud free tier, by owner decision, with the host set by an
 environment variable so that moving to self-hosting is a config change. Prompts stay in versioned
 files in git; Langfuse records which version each trace used.
 

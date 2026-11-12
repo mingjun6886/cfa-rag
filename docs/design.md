@@ -88,7 +88,9 @@ These would make the project a failure even if it works.
 | UI layout | Two columns: chat left, sources right |
 | Conversations | Saved, context-aware follow-ups, reopenable from a list; one user, no login, stored locally |
 | Safety | Defence against prompt injection, with measured results |
-| Repository | Public, under `mingjun6886` |
+| Repository | Public, named `cfa-rag`, under `mingjun6886` |
+| Langfuse hosting | Langfuse Cloud free tier; the host is an env var, so self-hosting stays a config change |
+| Golden set | Public, on condition that every item is in the owner's own words, with page references and no text copied from the notes or their quizzes |
 
 ### Defaults chosen during design, not yet confirmed
 
@@ -97,13 +99,11 @@ The owner delegated the UI technology. The rest are proposals; each can be overt
 | Area | Default | Why |
 |---|---|---|
 | UI technology | Streamlit | Python only, no separate API or frontend toolchain |
-| Langfuse hosting | Langfuse Cloud free tier; host set by env var | No extra containers competing with the local model for memory |
 | Swap seams | LangChain's own base interfaces | LangChain already defines them; a second layer would duplicate it |
 | Conversation storage | LangGraph SQLite checkpointer, plus a small table for the list | Built-in persistence keyed by thread id |
 | Citation format | Each statement lists chunk ids and a verbatim quote, checked by code | Works with any model; maps onto Claude's Citations later |
 | Input guard | Deterministic limits only, no model-based classifier | The code checks after generation carry the weight; add a classifier only if the attack set shows the need |
 | Sample corpus | Chapters from OpenStax *Principles of Finance*, first edition (CC BY 4.0) | Openly licensed finance text; licence to be re-checked on the book page before committing |
-| Golden set | Committed only if every item is in the owner's own words, with page references and no quoted text | Shows the eval work publicly without copying the notes |
 | CI gate | Deterministic metrics gate every PR; model-judged metrics run locally until an API model is available | GitHub's runners have neither the notes nor a local model |
 | Local model | Chosen by measurement among two or three candidates that fit in about 10 GB | No ranking found online is as reliable as a short local test |
 | Documentation language | English | Public portfolio |
@@ -112,7 +112,6 @@ The owner delegated the UI technology. The rest are proposals; each can be overt
 ### Not decided
 
 - **Document parser.** Chosen by the bake-off in milestone 0 (section 7.1).
-- **Repository name.**
 
 ## 7. System
 
@@ -264,7 +263,8 @@ LangChain's base interfaces are the seams: chat model, embeddings, retriever, do
   named `<tech>_<role>.py`.
 - The project defines its own types only where LangChain has none: answer, statement, citation,
   refusal.
-- Conventions for config, prompts and tests are in `CLAUDE.md` at the repository root.
+- Conventions for config, prompts and tests are recorded in `docs/conventions.md`, written in
+  milestone 0.
 
 **Known risk.** The `langchain-qdrant` package was last released on 2025-10-22. Milestone 1 starts
 by confirming it does hybrid search against an in-process Qdrant. If it does not, the retriever is
@@ -277,7 +277,7 @@ Each one ends with the README updated and the public repository runnable.
 
 | # | Name | Contents | Done when |
 |---|---|---|---|
-| 0 | Public foundation | README, this design, trade-off record, interactive flow page; parser bake-off and decision; sample corpus; 25–30 golden questions; retrieval metric script | The repository is public and a parser is chosen on evidence |
+| 0 | Public foundation | README, this design, trade-off record, conventions page, interactive flow page; parser bake-off and decision; sample corpus; 25–30 golden questions; retrieval metric script | The repository is public and a parser is chosen on evidence |
 | 1 | Walking skeleton | Ingestion; dense retrieval; structured answer with citation check; LangGraph; Ollama; Streamlit two-column UI; Langfuse tracing; versioned prompts | A question gets a cited answer in the UI, with a trace; baseline numbers are in the README |
 | 2 | Retrieval quality and conversations | Hybrid search, rerank, calibrated grounding gate, rewrite for follow-ups and Vietnamese, conversation list | Each addition is kept only if it beats the baseline, with numbers recorded |
 | 3 | Evals and safety in CI | 100–200 golden questions, unanswerable set, attack set, DeepEval metrics, thresholds, GitHub Actions gate | A PR that lowers a gated metric fails |
