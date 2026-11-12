@@ -2,6 +2,8 @@
 name = "cfa-rag"
 version = "0.1.0"
 description = "Ask-my-docs RAG over CFA study notes, with citations"
+readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = []
 

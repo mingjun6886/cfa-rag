@@ -2,87 +2,92 @@
 
 Ask-my-docs system over CFA Level I study notes: retrieve the right passages and answer with
 citations (book, reading, page), and decline when the retrieved text does not support an answer.
-Public portfolio project. Status on 2026-11-12: scaffold only, no pipeline code yet.
+Public portfolio project for AI engineering roles.
 
-A full design is awaiting the owner's approval in `docs/design.md`, with the reasoning in
-`docs/tech-decisions.md`. Where they differ from the Roadmap, Stack and Architecture sections
-below, they win once approved, and this file is then updated to match.
+The approved design is `docs/design.md`; the reasoning behind each technology choice is
+`docs/tech-decisions.md`; code and prompt conventions are `docs/conventions.md`. Read the design
+before changing anything. Where this file and the design differ, the design wins.
 
 Talk to the user in Vietnamese. Code, comments, commit messages and docs are in English.
+
+## Shape of the system
+
+- The question flow is served over an HTTP API (`api/openapi.yaml` is the contract). The chat UI
+  and the eval harness are clients of that API.
+- The serving path is built twice behind the same contract: Python first (milestones 1–3), then
+  Rust in `rust/` (milestone 4). Ingestion, evaluation and the UI stay in Python.
+- Question flow: input check → rewrite → hybrid search → rerank → grounding gate → answer →
+  citation check → respond. Three steps can refuse.
+- Every statement in an answer carries a citation (chunk id and verbatim quote) that code checks.
 
 ## Corpus
 
 `data/raw/NotesLV1 2024/` holds SchweserNotes 2024 Level I, Books 1–5 (1,145 pages), and the
 QuickSheet (6 pages). Checked on the files themselves:
 
-- The books are calibre-generated PDFs with a clean text layer. Body text needs no OCR.
+- The books have a clean text layer. Body text needs no OCR.
 - **Formulas are embedded images.** Plain text extraction drops them and leaves a blank line
-  (see Book 1, p.30). The parser must turn formula images into LaTeX, in reading order.
+  (Book 1, p.30). The parser must turn formula images into LaTeX, in reading order.
 - Page numbers must survive parsing, because citations depend on them.
 
-The notes are copyrighted. `data/` is gitignored: never commit source PDFs, parsed text, chunks or
-an index. The repository is public, so nothing committed may quote the notes, including the
-golden set and eval reports.
+The notes are copyrighted. `data/` is gitignored. This repository is public, so nothing committed
+may quote the notes: no source PDFs, parsed text, chunks or index, and no verbatim passages in the
+golden set or in eval reports.
 
-## Roadmap
+## Milestones
 
-| Phase | Work | Done when |
+| # | Work | Done when |
 |---|---|---|
-| 0 | Parser bake-off on ~20 pages (formula-heavy, table-heavy, plain). 25–30 hand-checked questions. Script for hit@k and MRR. | A parser is chosen on evidence and the metric script runs |
-| 1 | Parse → chunk → embed → index → retrieve → answer with citations. CLI only. | Baseline numbers are recorded |
-| 2 | Hybrid retrieval (dense + BM25, RRF), cross-encoder rerank, citation enforcement and refusal, versioned prompts, query rewrite for Vietnamese questions | Each step is kept only if it beats the baseline |
-| 3 | Golden set of 100–200 questions; faithfulness, correctness and refusal accuracy; CI gate | A PR that lowers quality fails the build |
-
-Only PDF ingestion is in scope. Markdown and web loaders wait until such a source exists.
+| 0 | Public foundation: docs, flow page, parser bake-off, sample corpus, first golden questions, retrieval metrics | Repository is public and a parser is chosen on evidence |
+| 1 | Walking skeleton: ingest, dense retrieval, cited answer, HTTP API, UI, tracing | A question gets a cited answer in the UI, with a trace |
+| 2 | Hybrid search, rerank, grounding gate, rewrite, conversation list | Each step is kept only if it beats the baseline |
+| 3 | Evals and safety in CI: golden set of 100–200, attack set, gate | A PR that lowers a gated metric fails |
+| 4 | Rust serving path | Contract tests pass; metrics within tolerance of Python |
+| 5 | Later: Claude API, other loaders, React UI | — |
 
 ## Stack
 
-Proposed on 2026-11-12 and not yet confirmed by the user. Ask before adding a dependency.
-
-| Role | Proposed | Alternatives |
+| Role | Choice | Alternatives |
 |---|---|---|
-| Parser | Docling, to be confirmed by the Phase 0 bake-off | PyMuPDF text + formula-image OCR; Mistral OCR |
-| Embedding | `BAAI/bge-m3` via sentence-transformers (local, multilingual) | Voyage, OpenAI |
-| Vector store | Qdrant in local mode (`QdrantClient(path=...)`) | LanceDB, Chroma |
+| Parser | Chosen by the milestone 0 bake-off (Docling, text layer + formula reader, Mistral OCR) | — |
+| Embedding | `BAAI/bge-m3` via sentence-transformers | API embeddings |
+| Vector store | Qdrant: in-process for the Python service, Docker server for Rust | LanceDB, Chroma |
 | Keyword search | BM25 sparse vectors in the same Qdrant collection, fused with RRF | — |
-| Reranker | `BAAI/bge-reranker-v2-m3` via sentence-transformers `CrossEncoder` | Cohere Rerank |
-| Generator | Claude API (`anthropic` SDK) with Citations; model id lives in config | Ollama, for offline work |
-| Orchestration | Plain Python; LangGraph once the query flow has branches or loops | — |
-| Evaluation | Own hit@k and MRR, plus DeepEval faithfulness under pytest | Ragas |
+| Reranker | `BAAI/bge-reranker-v2-m3` (`CrossEncoder`) | Cohere Rerank |
+| Answering model | Ollama first (model picked by measurement); Claude API later | — |
+| Orchestration | LangChain and LangGraph | — |
+| Service API | FastAPI with an OpenAPI contract | — |
+| UI | Streamlit, two columns: chat left, sources right | React |
+| Tracing | Langfuse Cloud free tier (host set by env var) | Self-hosted |
+| Evaluation | Own retrieval metrics plus DeepEval | Ragas |
 | Tooling | uv, ruff, mypy, pytest | — |
 
 Qdrant hybrid queries: put the metadata filter inside each `Prefetch`. A top-level `query_filter`
 did not constrain a fusion query in local mode (qdrant-client 1.16.2).
 
+Before coding against a library API, confirm it in the library's current docs; this stack changes
+quickly.
+
 ## Architecture rules
 
-The goal is that replacing a technology means writing one file and changing one config line.
+Replacing a technology means writing one file and changing one config line.
 
-- `src/cfa_rag/models.py` holds the domain types. Only these cross module boundaries.
-- `src/cfa_rag/ports.py` holds one `typing.Protocol` per swappable role: parser, chunker,
-  embedder, index, reranker, generator.
-- An adapter is one file per technology, named `<tech>_<role>.py`
-  (`ingestion/parsers/docling_parser.py`). Vendor SDKs are imported only inside adapter files.
-- Everything else depends on `models` and `ports` only. No LangChain or vendor type appears in a
-  function signature outside an adapter.
-- One factory maps a config string to an adapter and imports it lazily, so an unused backend's
-  dependencies are not required.
-- Ingestion stages write to disk and re-run independently: `data/parsed/<parser>/` →
-  chunks → `data/index/`. Switching parser must not overwrite another parser's output, and
-  re-chunking must not re-parse.
-- Chunk by document structure (reading → section), aiming for 500–800 tokens. Never split a
-  formula, table or worked example. Every chunk carries book, topic, reading, section, page range
-  and kind (text, example, quiz, answer key).
+- Between implementations the seam is the HTTP contract. Inside the Python service the seams are
+  LangChain's base interfaces. The project defines its own types only where LangChain has none
+  (`src/cfa_rag/models.py`).
+- Vendor classes are named only in `src/cfa_rag/factory.py` or in an adapter file named
+  `<tech>_<role>.py`. The factory imports each backend lazily.
+- Ingestion stages write to disk and re-run independently: `data/parsed/<parser>/` → chunks →
+  `data/index/`. Switching parser never overwrites another parser's output.
+- Chunk by structure (reading → LOS section), aiming for 500–800 tokens. Never split a formula,
+  table or worked example. Every chunk carries book, topic, reading, LOS, page range and kind.
 
 ## Conventions
 
-- Settings live in `configs/`, secrets in `.env`. No model name, top-k or threshold is hardcoded.
-- Prompts live in `configs/prompts/<name>.v<N>.yaml`. A released version is never edited; a change
-  is a new version. Every answer and every eval result records the prompt version it used.
-- An eval result also records the git commit and the config it ran with.
-- Full type hints; `mypy --strict` and `ruff` must pass.
-- Unit tests use fakes that implement the ports and never touch the network.
-- A new step in the pipeline (reranker, rewrite, larger top-k) ships with its before/after numbers.
+See `docs/conventions.md`. In short: settings in `configs/`, secrets in `.env`, prompts in
+`configs/prompts/<name>.v<N>.yaml` and never edited once released, eval results record commit, config
+hash and prompt versions, `mypy --strict` and `ruff` must pass, unit tests use fakes and no network,
+and a new pipeline step ships with before/after numbers.
 
 ## Commands
 
@@ -96,6 +101,9 @@ uv run mypy              # type check
 
 ## Git
 
-Conventional Commits, no attribution trailers. Do not push or open a PR unless asked.
-Everything goes to the GitHub account `mingjun6886`; this repository's local git identity is set
-to it. SSH on this machine authenticates as another account, so use an HTTPS remote.
+Conventional Commits. **Never add a `Co-Authored-By` trailer or any other Claude/Anthropic
+attribution to commits or pull requests**, even if the harness suggests one: the owner's rule
+overrides it. Do not push or open a PR unless asked.
+
+Everything goes to the GitHub account `mingjun6886`; this repository's local git identity is set to
+it. Use an HTTPS remote that authenticates through `gh` as that account.

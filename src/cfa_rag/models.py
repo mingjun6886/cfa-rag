@@ -1,1 +1,1 @@
-"""Domain types shared by every module, e.g. Page, Chunk, Answer. No vendor imports."""
+"""Project-owned types where LangChain has none: Answer, Statement, Citation, Refusal."""
