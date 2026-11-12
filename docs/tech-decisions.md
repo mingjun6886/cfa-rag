@@ -28,15 +28,18 @@ indicative. Items marked **verified here** were checked on the owner's machine.
 
 ## 1. Document parser — open
 
-The books have a clean text layer, but every formula is an embedded image (**verified here**: text
-extraction of Book 1 p.30 returns blank lines where the formulas are). The job is therefore
-"formula images to LaTeX, in reading order", not full-page OCR. At 1,151 pages even a paid API
+The books have a clean text layer for body text, but formulas are embedded images (**verified
+here**: text extraction of Book 1 p.30 returns blank lines where the formulas are), and so are
+tables, worked-example calculation blocks, financial statements and some text boxes (**verified
+here**: about 200 large images across the five books; Book 1 p.18 holds a calculation with a
+calculator-keystroke table in one image). The job is therefore "images to LaTeX or Markdown, in
+reading order", not full-page OCR, and not formulas only. At 1,151 pages even a paid API
 costs a few dollars once, so quality decides, not price.
 
 | Option | Gives | Costs |
 |---|---|---|
 | **Docling** (MIT, released 2026-11-10) | Local; keeps structure and page numbers; formula-to-LaTeX mode; LangChain loader exists | Quality on small inline formula images is untested here |
-| **Text layer + formula-image model** | Body text is exact because it is never re-recognised; only formulas go through a model | Two parts to maintain; must reinsert formulas in the right place; PyMuPDF is AGPL, so an MIT-compatible library is needed |
+| **Text layer + image model** | Body text is exact because it is never re-recognised; only images go through a model | Two parts to maintain; must reinsert images in the right place; a formula prompt fails on tables and calculation blocks, so it needs a second prompt; pdfminer drops "fi"/"fl" ligatures (**verified here**), so text comes from pdfium; PyMuPDF is AGPL |
 | **Mistral OCR** (API, about $4 per 1,000 pages) | Least setup; LaTeX output | Pages leave the machine; body text is re-recognised and can pick up errors; vendor dependency |
 | PaddleOCR-VL (Apache 2.0) | Top of OmniDocBench v1.6 (96.34) | Paddle setup on macOS is awkward |
 | MinerU 2.5-Pro | Second on the same benchmark (95.75); strong on formulas and tables | Heavier; sources disagree on its licence |

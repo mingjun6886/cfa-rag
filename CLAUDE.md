@@ -26,8 +26,10 @@ Talk to the user in Vietnamese. Code, comments, commit messages and docs are in 
 QuickSheet (6 pages). Checked on the files themselves:
 
 - The books have a clean text layer. Body text needs no OCR.
-- **Formulas are embedded images.** Plain text extraction drops them and leaves a blank line
-  (Book 1, p.30). The parser must turn formula images into LaTeX, in reading order.
+- **Formulas, tables, worked-example calculations and some text boxes are embedded images**
+  (about 200 large ones). Plain text extraction drops them and leaves a blank line (Book 1,
+  p.30). The parser must turn them into LaTeX or Markdown, in reading order.
+- pdfminer (pdfplumber) drops the "fi"/"fl" ligature glyphs; take text from pdfium.
 - Page numbers must survive parsing, because citations depend on them.
 
 The notes are copyrighted. `data/` is gitignored. This repository is public, so nothing committed

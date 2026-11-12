@@ -72,9 +72,11 @@ These would make the project a failure even if it works.
 ## 5. Constraints
 
 - **Machine:** Apple M4 Pro, 24 GB. Models run locally through Ollama. Docker is available.
-- **Corpus:** SchweserNotes 2024 Level I, five books and the QuickSheet, 1,151 pages. The PDFs have
-  a clean text layer, but **formulas are embedded images** that plain text extraction drops. The
-  text has about 684 `LOS x.y` headings and 232 `MODULE QUIZ` markers.
+- **Corpus:** SchweserNotes 2024 Level I, five books and the QuickSheet, 1,151 pages. Body text
+  has a clean text layer, but **formulas, tables, worked-example calculation blocks and some text
+  boxes are embedded images**: about 200 large images (over 250 x 100 pt) across the five books,
+  plus many small formula images. Plain text extraction drops all of them. The text has about 684
+  `LOS x.y` headings and 232 `MODULE QUIZ` markers.
 - **Copyright:** the notes stay on the owner's machine under `data/`, which is gitignored.
 - **GitHub:** public repository under the account `mingjun6886`. Commits carry no attribution
   trailers. SSH on this machine authenticates as a different account, so the remote uses HTTPS.
@@ -137,11 +139,12 @@ LangGraph runs it; Langfuse records it.
 
 `PDF → parse → chunk → embed → index`. Each stage writes to disk and can be re-run alone.
 
-- **Parse.** Take body text from the PDF text layer, convert formula images to LaTeX in reading
-  order, and keep the page number of everything. Output goes to `data/parsed/<parser>/`, so trying
+- **Parse.** Take body text from the PDF text layer, convert images that hold formulas to LaTeX
+  and images that hold tables or calculations to Markdown, in reading order, and keep the page
+  number of everything. Output goes to `data/parsed/<parser>/`, so trying
   another parser never overwrites an earlier result.
-- **Parser bake-off.** Twenty pages across the five books: eight formula-heavy, six table-heavy,
-  six plain. Candidates: Docling with formula enrichment; text layer plus a model that reads only
+- **Parser bake-off.** Twenty pages across the five books: eight formula-heavy, six with tables
+  stored as images, five plain, and one text block stored as an image. Candidates: Docling with formula enrichment; text layer plus a model that reads only
   the formula images; Mistral OCR. Judged on formula exactness (hand-checked against about forty
   formulas), reading order, table fidelity, page numbers, runtime, cost and licence. Parsed pages
   stay under `data/`; only the score table is committed.
