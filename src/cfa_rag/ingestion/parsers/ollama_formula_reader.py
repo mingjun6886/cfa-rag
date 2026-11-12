@@ -16,7 +16,9 @@ _PROMPT_FILE = Path(__file__).parents[4] / "configs" / "prompts" / "formula_read
 def make_formula_reader(model: str) -> Callable[[bytes], str]:
     """Return a function that sends PNG bytes to `model` and returns its raw reply."""
     prompt: str = yaml.safe_load(_PROMPT_FILE.read_text(encoding="utf-8"))["prompt"]
-    llm = ChatOllama(model=model, temperature=0, num_predict=512)
+    # reasoning=False: a thinking model spends a small token budget on hidden reasoning and
+    # returns an empty reply, and is also several times slower.
+    llm = ChatOllama(model=model, temperature=0, num_predict=512, reasoning=False)
 
     def read(png: bytes) -> str:
         data_url = "data:image/png;base64," + base64.b64encode(png).decode("ascii")

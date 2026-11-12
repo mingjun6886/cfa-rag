@@ -1,0 +1,26 @@
+# Pages for the parser bake-off (design section 7.1). Page numbers only; no text from the notes.
+# formula: formula images inline or in calculation blocks. table: tables stored as images.
+# plain: no images. image_text: a block of body text stored as an image.
+# The books store tables, calculation blocks and some text boxes as embedded images, so the
+# 'table' and 'formula' pages test the image path, and 'plain' tests the text layer.
+pages:
+  - {pdf: "CFA 2024 SCH L1 B1.pdf", page: 30, category: formula}
+  - {pdf: "CFA 2024 SCH L1 B1.pdf", page: 103, category: formula}
+  - {pdf: "CFA 2024 SCH L1 B2.pdf", page: 19, category: formula}
+  - {pdf: "CFA 2024 SCH L1 B3.pdf", page: 46, category: formula}
+  - {pdf: "CFA 2024 SCH L1 B3.pdf", page: 80, category: formula}
+  - {pdf: "CFA 2024 SCH L1 B4.pdf", page: 64, category: formula}
+  - {pdf: "CFA 2024 SCH L1 B4.pdf", page: 104, category: formula}
+  - {pdf: "CFA 2024 SCH L1 B5.pdf", page: 170, category: formula}
+  - {pdf: "CFA 2024 SCH L1 B1.pdf", page: 86, category: table}
+  - {pdf: "CFA 2024 SCH L1 B2.pdf", page: 49, category: table}
+  - {pdf: "CFA 2024 SCH L1 B3.pdf", page: 194, category: table}
+  - {pdf: "CFA 2024 SCH L1 B4.pdf", page: 59, category: table}
+  - {pdf: "CFA 2024 SCH L1 B4.pdf", page: 122, category: table}
+  - {pdf: "CFA 2024 SCH L1 B5.pdf", page: 60, category: table}
+  - {pdf: "CFA 2024 SCH L1 B1.pdf", page: 98, category: plain}
+  - {pdf: "CFA 2024 SCH L1 B2.pdf", page: 46, category: plain}
+  - {pdf: "CFA 2024 SCH L1 B3.pdf", page: 151, category: plain}
+  - {pdf: "CFA 2024 SCH L1 B4.pdf", page: 95, category: plain}
+  - {pdf: "CFA 2024 SCH L1 B5.pdf", page: 72, category: plain}
+  - {pdf: "CFA 2024 SCH L1 B3.pdf", page: 15, category: image_text}

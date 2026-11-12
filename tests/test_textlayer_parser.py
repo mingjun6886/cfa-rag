@@ -103,3 +103,18 @@ def test_formula_reader_prompt_is_pinned() -> None:
         "delimiters and no commentary. If the image is not a mathematical formula, output "
         "exactly NOT_A_FORMULA."
     )
+
+
+def test_formula_reader_turns_off_hidden_reasoning(monkeypatch: pytest.MonkeyPatch) -> None:
+    # With reasoning on, a small token budget is spent before any answer: the reply is empty.
+    from cfa_rag.ingestion.parsers import ollama_formula_reader
+
+    seen: dict[str, object] = {}
+
+    class FakeChat:
+        def __init__(self, **kwargs: object) -> None:
+            seen.update(kwargs)
+
+    monkeypatch.setattr(ollama_formula_reader, "ChatOllama", FakeChat)
+    ollama_formula_reader.make_formula_reader("some-model")
+    assert seen["model"] == "some-model" and seen["reasoning"] is False
