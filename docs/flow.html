@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cfa-rag: how it works</title>
+<meta name="description" content="Interactive walk-through of the three flows in cfa-rag: ingestion, question answering and evaluation.">
+<style>
+  :root {
+    --bg: #f5f5f7; --panel: #ffffff; --card: #f5f5f7; --open: #e8f4fd;
+    --text: #1d1d1f; --muted: #5c5c61; --border: #d1d1d6;
+    --step: #0071e3; --gate: #b86e00; --undecided: #d70015;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1d1d1f; --panel: #2d2d2f; --card: #1d1d1f; --open: #1c3350;
+      --text: #f5f5f7; --muted: #aeaeb2; --border: #424245;
+      --step: #0a84ff; --gate: #ff9f0a; --undecided: #ff6961;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px 48px; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 16px; max-width: 70ch; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .band { border: 1px dashed var(--step); border-radius: 10px; padding: 10px 14px; margin-bottom: 18px; font-size: 15px; }
+  .lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .lanes { grid-template-columns: 1fr; } }
+  .lane { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+  .lane h2 { font-size: 18px; margin: 0; }
+  .when { color: var(--muted); font-size: 14px; margin: 2px 0 12px; }
+  details {
+    background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--step);
+    border-radius: 9px;
+  }
+  details.gate { border-left-color: var(--gate); }
+  details.undecided { border-left-color: var(--undecided); }
+  details[open] { background: var(--open); }
+  summary {
+    cursor: pointer; padding: 10px 12px; list-style: none; display: flex;
+    justify-content: space-between; align-items: baseline; gap: 8px; border-radius: 9px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary:focus-visible { outline: 2px solid var(--step); outline-offset: 2px; }
+  summary strong { font-size: 15px; }
+  .tag { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .body { padding: 0 12px 12px; font-size: 14px; }
+  .body p { margin: 6px 0; }
+  .body b { color: var(--text); }
+  .arrow { text-align: center; color: var(--muted); line-height: 1.3; }
+  footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
+  footer a { color: var(--step); }
+</style>
+</head>
+<body>
+<main>
+  <h1>cfa-rag: how it works</h1>
+  <p class="lead">An ask-my-docs system for CFA Level I study notes. Select any step to see what it does, which technology it uses and what the alternatives were.</p>
+
+  <div class="legend" aria-label="Legend">
+    <span><i style="background:var(--step)"></i>processing step</span>
+    <span><i style="background:var(--gate)"></i>gate: can refuse a question or fail a build</span>
+    <span><i style="background:var(--undecided)"></i>not decided yet</span>
+  </div>
+
+  <div class="band">The question flow is served over one HTTP API. It is built twice, in Python with LangGraph first and in Rust later (milestone 4), and judged by the same eval harness. Langfuse traces every step, and each conversation is one Langfuse session.</div>
+
+  <div class="lanes">
+
+    <section class="lane" aria-labelledby="lane-ingest">
+      <h2 id="lane-ingest">1 · Ingestion</h2>
+      <p class="when">Runs once, and again when the parser or the chunking changes.</p>
+
+      <details name="step"><summary><strong>Source PDFs</strong><span class="tag">input</span></summary><div class="body">
+        <p><b>What:</b> five SchweserNotes books and the QuickSheet, 1,151 pages.</p>
+        <p><b>Note:</b> the notes are copyrighted and never enter the repository. A small openly licensed sample corpus lets anyone run the system.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step" class="undecided"><summary><strong>Parse</strong><span class="tag">not decided</span></summary><div class="body">
+        <p><b>What:</b> takes body text from the PDF text layer, converts formula images to LaTeX in reading order, and keeps every page number.</p>
+        <p><b>Why it is hard:</b> the formulas are embedded images, so plain text extraction silently drops them.</p>
+        <p><b>Candidates:</b> Docling; the text layer plus a model that reads only the formula images; Mistral OCR.</p>
+        <p><b>How it is decided:</b> a bake-off on twenty pages. Output is kept per parser, so trying another never overwrites an earlier result.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Chunk</strong><span class="tag">by structure</span></summary><div class="body">
+        <p><b>What:</b> splits by reading, then by learning-outcome section, aiming for 500–800 tokens. Never splits a formula, a table or a worked example.</p>
+        <p><b>Each chunk carries:</b> book, topic, reading, section, page range and kind.</p>
+        <p><b>Left out:</b> quiz and answer-key chunks, so an answer key cannot pass as an explanation.</p>
+        <p><b>Alternative:</b> fixed-size windows; they cut formulas in half.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Embed</strong><span class="tag">bge-m3 + BM25</span></summary><div class="body">
+        <p><b>By meaning:</b> bge-m3, run locally. It is multilingual, so a Vietnamese question can match English text.</p>
+        <p><b>By keyword:</b> BM25 sparse vectors, for terms that must match exactly.</p>
+        <p><b>Alternative:</b> embeddings from an API; they cost money and send text to a vendor.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Index</strong><span class="tag">Qdrant</span></summary><div class="body">
+        <p><b>What:</b> both vectors for each chunk live in one Qdrant collection, so one query can search both.</p>
+        <p><b>Python service:</b> Qdrant runs inside the process. <b>Rust service:</b> a Qdrant server in Docker.</p>
+        <p><b>Alternatives:</b> LanceDB, Chroma, Weaviate.</p></div></details>
+    </section>
+
+    <section class="lane" aria-labelledby="lane-ask">
+      <h2 id="lane-ask">2 · Question flow</h2>
+      <p class="when">Runs for every question.</p>
+
+      <details name="step"><summary><strong>Chat UI</strong><span class="tag">Streamlit</span></summary><div class="body">
+        <p><b>What:</b> two columns, with the chat on the left and the sources on the right. A conversation list sits in the sidebar.</p>
+        <p><b>Citations:</b> numbered buttons under the answer; selecting one shows the passage with its book, reading and page.</p>
+        <p><b>Alternative:</b> a React frontend, later. The UI holds no retrieval logic, so it can be replaced.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Service API</strong><span class="tag">FastAPI</span></summary><div class="body">
+        <p><b>What:</b> the only way into the question flow. Asking a question returns a stream of step events and then one result, either an answer or a refusal.</p>
+        <p><b>Contract:</b> an OpenAPI file. Contract tests run against any base URL, so the Rust service must pass the same ones.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step" class="gate"><summary><strong>Input check</strong><span class="tag">gate</span></summary><div class="body">
+        <p><b>What:</b> strips control characters and rejects empty input or input over 2,000 characters.</p>
+        <p><b>Limit:</b> it is not an attack detector. It is the first of several layers.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Rewrite</strong><span class="tag">local model</span></summary><div class="body">
+        <p><b>What:</b> turns the question and the last few turns into one standalone English question, and notes which language the user wrote in.</p>
+        <p><b>Why:</b> “what about annuities?” cannot be searched on its own, and the notes are in English.</p>
+        <p><b>Only this step sees the conversation history.</b></p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Hybrid search</strong><span class="tag">20 chunks</span></summary><div class="body">
+        <p><b>What:</b> searches by meaning and by keyword at once, and merges the two rankings by rank (RRF) rather than by raw score.</p>
+        <p><b>Why both:</b> meaning finds paraphrases; keywords find exact terms and formula names.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Rerank</strong><span class="tag">keep 5</span></summary><div class="body">
+        <p><b>What:</b> a cross-encoder reads the question together with each chunk and scores how well they match.</p>
+        <p><b>Technology:</b> bge-reranker-v2-m3, run locally. <b>Alternative:</b> Cohere Rerank.</p>
+        <p>It is kept only if it improves retrieval over hybrid search alone.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step" class="gate"><summary><strong>Grounding gate</strong><span class="tag">gate</span></summary><div class="body">
+        <p><b>What:</b> if the best reranker score is below a threshold, the system declines without calling the answering model.</p>
+        <p><b>Threshold:</b> calibrated on part of the golden set, not set by feel.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Answer</strong><span class="tag">Ollama, Claude later</span></summary><div class="body">
+        <p><b>What:</b> the model writes statements from the five chunks only. Each statement carries a chunk id and a verbatim quote.</p>
+        <p><b>Against injection:</b> the question and the chunks go into the prompt as labelled data, and the prompt says so. The prompt lives in a versioned file.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step" class="gate"><summary><strong>Citation check</strong><span class="tag">gate</span></summary><div class="body">
+        <p><b>What:</b> code checks that each statement has a citation, that the chunk id is one of the five, and that the quote really occurs in that chunk.</p>
+        <p><b>On failure:</b> regenerate once, then decline.</p>
+        <p><b>Limit:</b> it proves the quote exists, not that it supports the statement. That gap is what the faithfulness metric measures.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Respond</strong><span class="tag">saved + traced</span></summary><div class="body">
+        <p><b>What:</b> shows the answer with its sources and saves the turn. The answer is shown only after the citation check, so it is not streamed word by word.</p>
+        <p><b>Rendering:</b> plain Markdown with raw HTML, images and links removed.</p></div></details>
+    </section>
+
+    <section class="lane" aria-labelledby="lane-eval">
+      <h2 id="lane-eval">3 · Evaluation</h2>
+      <p class="when">Before every change, and in CI.</p>
+
+      <details name="step"><summary><strong>Golden set</strong><span class="tag">written by hand</span></summary><div class="body">
+        <p><b>What:</b> questions with reference answers and supporting pages, questions the notes cannot answer, and prompt-injection attacks.</p>
+        <p><b>Public, with a rule:</b> every item is in the author's own words with page references only, never text copied from the notes.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Run the question flow</strong><span class="tag">same API as the UI</span></summary><div class="body">
+        <p><b>What:</b> every question goes through the HTTP API the UI uses. There is no separate path for evaluation.</p>
+        <p><b>Why:</b> the same harness can judge the Python service and the Rust service by changing a base URL.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Score</strong><span class="tag">two kinds</span></summary><div class="body">
+        <p><b>Without a judge model (gated):</b> retrieval hit@5 and MRR@10, citation-check pass rate, refusal accuracy in both directions, attack success rate.</p>
+        <p><b>With a judge model:</b> faithfulness and answer correctness (DeepEval). Reported, but not gated until the judge agrees with hand labels.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step"><summary><strong>Report</strong><span class="tag">Langfuse</span></summary><div class="body">
+        <p><b>What:</b> each result records the git commit, a hash of the config and the prompt versions, and goes to Langfuse so runs can be compared.</p>
+        <p><b>Committed reports</b> hold ids and scores only, never text from the notes.</p></div></details>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <details name="step" class="gate"><summary><strong>CI gate</strong><span class="tag">gate</span></summary><div class="body">
+        <p><b>What:</b> a pull request that lowers a gated metric below the recorded baseline minus a tolerance fails the build.</p>
+        <p><b>Limit:</b> GitHub's runners have neither the notes nor a local model, so CI runs on a small sample corpus. The full run happens on the author's machine.</p></div></details>
+    </section>
+
+  </div>
+
+  <footer>
+    Source and design documents:
+    <a href="https://github.com/mingjun6886/cfa-rag">repository</a> ·
+    <a href="https://github.com/mingjun6886/cfa-rag/blob/main/docs/design.md">design</a> ·
+    <a href="https://github.com/mingjun6886/cfa-rag/blob/main/docs/tech-decisions.md">technology trade-offs</a>
+  </footer>
+</main>
+</body>
+</html>
