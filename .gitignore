@@ -1,0 +1,10 @@
+# Copyrighted source PDFs and everything derived from them stay local.
+data/
+
+.env
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
