@@ -120,7 +120,7 @@ The owner delegated the UI technology. The rest are proposals; each can be overt
 | Conversation storage | LangGraph SQLite checkpointer, plus a small table for the list | Built-in persistence keyed by thread id |
 | Citation format | Each statement lists chunk ids and a verbatim quote, checked by code | Works with any model; maps onto Claude's Citations later |
 | Input guard | Deterministic limits only, no model-based classifier | The code checks after generation carry the weight; add a classifier only if the attack set shows the need |
-| Sample corpus | Chapters from OpenStax *Principles of Finance*, first edition (CC BY 4.0) | Openly licensed finance text; licence to be re-checked on the book page before committing |
+| Sample corpus | A short original primer on the time value of money, written for this repository (MIT), in `sample/` | No licence risk. OpenStax *Principles of Finance* was considered, but its book page states CC BY-NC-SA 4.0 (decided by the owner, 2026-11-12) |
 | CI gate | Deterministic metrics gate every PR; model-judged metrics run locally until an API model is available | GitHub's runners have neither the notes nor a local model |
 | Local model | Chosen by measurement among two or three candidates that fit in about 10 GB | No ranking found online is as reliable as a short local test |
 | Documentation language | English | Public portfolio |

@@ -64,5 +64,6 @@ The pipeline is not built yet; for now this runs the test suite only.
 ## About the data
 
 The study notes (SchweserNotes, CFA Level I 2024) are copyrighted and are not in this repository.
-A small, openly licensed sample corpus will let anyone run the system without them. The golden
+[`sample/`](sample/time-value-of-money.md) holds a short original primer on the time value of money,
+written for this repository and MIT-licensed, so anyone can run the system without the notes. The golden
 questions are written in the author's own words with page references only.
